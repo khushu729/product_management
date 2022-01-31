@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block jsextra %}
+<script src='{% static "js/product/app.js" %}?build=1.0.0'></script>
+<script src='{% static "js/product/service.js" %}?build=1.0.0'></script>
+<script src='{% static "js/product/controller.js" %}?build=1.0.0'></script>
+
+<script type="text/javascript">
+    productApp.value('backend_data', {
+        "categories": "{{ categories | escapejs}}",
+        "is_admin": {{request.user.is_superuser|yesno:'true,false'}},
+        "user_id": {{ request.user.id }},
+    });
+  </script>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    {% verbatim %}
+    <div class="row" ng-app="productApp">
+<!--        filters and search -->
+        <div ng-controller="ProductListController">
+            <div class="col-sm-10">
+                <h2>Products</h2>
+            </div>
+            <div class="col-sm-2" ng-if="is_admin"><button class="btn btn-success" ng-click="add_product()">Add Product</button></div>
+            <div class="col-sm-2" ng-if="!is_admin"></div>
+
+            <div class="col-sm-4">
+                <input type="text" placeholder="Search.." name="search" ng-model="search_value">
+                <button ng-click="search(search_value)"><i class="glyphicon glyphicon-search"></i></button>
+            </div>
+            <div class="col-sm-4">
+                <label for="filter_category">Filter By Category:</label>
+                <select id="product_category_filter" ng-model="category_filter_value" ng-change="filter_by_category()">
+
+                    <option value="[{{ category[0] }}]" ng-repeat="category in categories" >{{category[1]}}</option>
+                </select>
+            </div>
+
+            <div class="col-sm-4">
+                <button ng-if="category_filter_value || search_value" class="text-right btn btn-primary" ng-click="clear()">Clear</button>
+            </div>
+
+            <hr/>
+            <br/>
+            <table class="table table-striped" ng-if="products.length > 0">
+                <thead>
+                    <tr>
+                        <th>No.</th>
+                        <th>Name</th>
+                        <th>Code</th>
+                        <th>Price in Rs.</th>
+                        <th>Category</th>
+                        <th>Status</th>
+                        <th>Expiry Date</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr ng-repeat="product in products">
+                        <td>{{ $index + 1 }}</td>
+                        <td>{{ product.name }}</td>
+                        <td>{{ product.code }}</td>
+                        <td>{{ product.price }}</td>
+                        <td>{{ product.product_categories }}</td>
+                        <td>{{ product.status }}</td>
+                        <td>{{ product.expiry_date | date }}</td>
+                        <td>
+                            <a href="javascript:void(0)" ng-click="update_product_modal(product)"><span class="glyphicon glyphicon-edit"></span></a>
+                            <a href="javascript:void(0)" ng-click="delete_product(product.id)"><span class="glyphicon glyphicon-trash"></span></a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <div ng-if="products.length <= 0" class="col-sm-12 text-center">
+                <h4 class="text text-warning">Couldn't find any data !!!</h4>
+            </div>
+            <script type="text/ng-template" id="addProductModal.html">
+              <div class="modal-header">
+                <button type="button" class="close" ng-click="vm.cancel()">
+                  <span aria-hidden="true">×</span>
+                </button>
+                  <h4 class="modal-title"><translate>Add New Product</translate></h4>
+              </div>
+              <div class="modal-body">
+                <form>
+                  <div class="form-group">
+                    <label for="name">Product Name:</label>
+                    <input type="text" class="form-control" id="name" ng-model="product_details.name">
+                  </div>
+                  <div class="form-group">
+                    <label for="code">Product Code:</label>
+                    <input type="text" class="form-control" id="code" ng-model="product_details.code">
+                  </div>
+                    <div class="form-group">
+                    <label for="price">Price:</label>
+                    <input type="integer" class="form-control" id="price" ng-model="product_details.price" step="any">
+                  </div>
+                  <div class="form-group">
+                    <label for="category">Category:</label>
+                    <select id="product_category" class="form-control" ng-model="product_details.category">
+                        <option>------</option>
+                        <option value="[{{ category[0] }}]" ng-repeat="category in vm.categories">{{category[1]}}</option>
+                    </select>
+                  </div>
+                    <div class="form-group">
+                    <label for="manufacture_date">Manufacture Date:</label>
+                    <input type="datetime-local" class="form-control" id="manufacture_date" ng-model="product_details.manufacture_date">
+                  </div>
+                  <div class="form-group">
+                    <label for="expiry_date">Expiry Date:</label>
+                    <input type="datetime-local" class="form-control" id="expiry_date" ng-model="product_details.expiry_date">
+                  </div>
+                </form>
+              </div>
+              <div class="modal-footer">
+                  <button type="button" class="btn btn-default" ng-click="vm.cancel()"><translate>Cancel</translate></button>
+                  <button type="button" class="btn btn-default" ng-click="vm.submit_new_product(product_details)"><translate>Add</translate></button>
+              </div>
+            </script>
+
+            <script type="text/ng-template" id="updateProductModal.html">
+              <div class="modal-header">
+                <button type="button" class="close" ng-click="vm.cancel_update_modal()">
+                  <span aria-hidden="true">×</span>
+                </button>
+                  <h4 class="modal-title"><translate>Update Product:</translate></h4>
+              </div>
+              <div class="modal-body">
+                <form>
+                  <div class="form-group">
+                    <label for="name">Product Name:</label>
+                    <input type="text" class="form-control" ng-model="vm.update_details.name">
+                  </div>
+                  <div class="form-group">
+                    <label for="code">Product Code:</label>
+                    <input type="text" class="form-control" ng-model="vm.update_details.code">
+                  </div>
+                    <div class="form-group">
+                    <label for="price">Price:</label>
+                    <input type="integer" class="form-control" ng-model="vm.update_details.price" step="any">
+                  </div>
+                  <div class="form-group">
+                    <label for="category">Category:</label>
+                    <select class="form-control" ng-model="vm.update_details.category[0]">
+                        <option value="{{ category[0] }}" ng-repeat="category in vm.categories" >{{category[1]}}</option>
+                    </select>
+                  </div>
+                    <div class="form-group">
+                    <label for="manufacture_date">Manufacture Date:</label>
+                    <input type="datetime-local" class="form-control" ng-model="vm.update_details.manufacture_date">
+                  </div>
+                  <div class="form-group">
+                    <label for="expiry_date">Expiry Date:</label>
+                    <input type="datetime-local" class="form-control" ng-model="vm.update_details.expiry_date">
+                  </div>
+                </form>
+              </div>
+              <div class="modal-footer">
+                  <button type="button" class="btn btn-default" ng-click="vm.cancel_update_modal()"><translate>Cancel</translate></button>
+                  <button type="button" class="btn btn-default" ng-click="vm.update_product(vm.update_details)"><translate>Update</translate></button>
+              </div>
+            </script>
+
+        </div>
+    </div>
+    {% endverbatim %}
+</div>
+{% endblock %}

@@ -1,0 +1,7 @@
+Django==3.2.11
+django-crontab==0.7.1
+django-mptt==0.13.4
+django-user-accounts==3.1.0
+djangorestframework==3.11.0
+drf-yasg==1.20.0
+django-filter==21.1
